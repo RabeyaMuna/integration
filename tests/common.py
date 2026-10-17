@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 import functools as ft
 import json as json_func
 import os
-from typing import Any, Iterable, Mapping
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 from aiohttp import ClientSession, ClientWebSocketResponse
@@ -95,7 +96,7 @@ def recursive_remove_key(data: dict[str, Any], to_remove: Iterable[str]) -> dict
     return copy_data
 
 
-def fixture(filename, asjson=True):
+def fixture(filename: str, asjson: bool = True) -> Any:
     """Load a fixture."""
     filename = f"{filename}.json" if "." not in filename else filename
     path = os.path.join(
@@ -113,7 +114,7 @@ def fixture(filename, asjson=True):
         raise OSError(f"Missing fixture for {path.split('fixtures/')[1]}") from err
 
 
-def dummy_repository_base(hacs, repository=None):
+def dummy_repository_base(hacs: HacsBase, repository: HacsRepository | None = None) -> HacsRepository:
     if repository is None:
         repository = HacsRepository(hacs)
         repository.data.full_name = "test/test"
@@ -139,7 +140,7 @@ def dummy_repository_base(hacs, repository=None):
 
 
 # pylint: disable=protected-access
-async def async_test_home_assistant(loop, tmpdir):
+async def async_test_home_assistant(loop: asyncio.AbstractEventLoop, tmpdir: Any) -> ha.HomeAssistant:
     """Return a Home Assistant object pointing at test config dir."""
     try:
         hass = ha.HomeAssistant()  # pylint: disable=no-value-for-parameter
@@ -154,7 +155,7 @@ async def async_test_home_assistant(loop, tmpdir):
     orig_async_add_executor_job = hass.async_add_executor_job
     orig_async_create_task = hass.async_create_task
 
-    def async_add_job(target, *args):
+    def async_add_job(target: Any, *args: Any) -> Any:
         """Add job."""
         check_target = target
         while isinstance(check_target, ft.partial):
@@ -167,7 +168,7 @@ async def async_test_home_assistant(loop, tmpdir):
 
         return orig_async_add_job(target, *args)
 
-    def async_add_executor_job(target, *args):
+    def async_add_executor_job(target: Any, *args: Any) -> Any:
         """Add executor job."""
         check_target = target
         while isinstance(check_target, ft.partial):
@@ -180,7 +181,7 @@ async def async_test_home_assistant(loop, tmpdir):
 
         return orig_async_add_executor_job(target, *args)
 
-    def async_create_task(coroutine, *args):
+    def async_create_task(coroutine: Any, *args: Any) -> Any:
         """Create task."""
         if isinstance(coroutine, Mock) and not isinstance(coroutine, AsyncMock):
             fut = asyncio.Future()
@@ -210,26 +211,7 @@ async def async_test_home_assistant(loop, tmpdir):
         dr.async_load(hass),
         er.async_load(hass),
         ir.async_load(hass),
-        rs.async_load(hass),
-    )
-    hass.data[bootstrap.DATA_REGISTRIES_LOADED] = None
-
-    hass.config_entries = config_entries.ConfigEntries(hass, {})
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, hass.config_entries._async_shutdown)
-
-    hass.state = ha.CoreState.running
-    await async_setup_component(hass, "homeassistant", {})
-
-    async def clear_instance(event):
-        """Clear global instance."""
-        if hass.http and hass.http.runner and hass.http.runner.sites:
-            await hass.http.stop()
-        INSTANCES.remove(hass)
-
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_CLOSE, clear_instance)
-    await ha_config.async_ensure_config_exists(hass)
-
-    return hass
+        rs.as
 
 
 @ha.callback
