@@ -2,11 +2,10 @@ import os
 from pathlib import Path
 from typing import Generator
 
-from homeassistant.core import HomeAssistant
 import pytest
+from homeassistant.core import HomeAssistant
 
 from custom_components.hacs.enums import HacsCategory
-
 from tests.common import (
     CategoryTestData,
     WSClient,
@@ -20,7 +19,7 @@ from tests.conftest import SnapshotFixture
     "category_test_data",
     category_test_data_parametrized(
         skip_categories=[HacsCategory.PYTHON_SCRIPT],
-        skip_reason="bug in cleanup, using repo name instad of file name.",
+        skip_reason="bug in cleanup, using repo name instead of file name.",
     ),
 )
 async def test_remove_repository(
