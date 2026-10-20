@@ -49,22 +49,17 @@ TOKEN = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 INSTANCES = []
 REQUEST_CONTEXT: ContextVar[pytest.FixtureRequest] = ContextVar("request_context", default=None)
 
-IGNORED_BASE_FILES = set([
-        "/config/automations.yaml",
-        "/config/configuration.yaml",
-        "/config/scenes.yaml",
-        "/config/scripts.yaml",
-        "/config/secrets.yaml",
-    ])
+IGNORED_BASE_FILES = {
+    "/config/automations.yaml",
+    "/config/configuration.yaml",
+    "/config/scenes.yaml",
+    "/config/scripts.yaml",
+    "/config/secrets.yaml",
+}
 
 
 def safe_json_dumps(data: dict | list) -> str:
-    return json_func.dumps(
-        data,
-        indent=4,
-        sort_keys=True,
-        cls=ExtendedJSONEncoder,
-    )
+    return json_func.dumps(data, indent=4, sort_keys=True, cls=ExtendedJSONEncoder)
 
 
 def recursive_remove_key(data: dict[str, Any], to_remove: Iterable[str]) -> dict[str, Any]:
@@ -251,7 +246,7 @@ def mock_storage(data=None):
 
     orig_load = storage.Store._async_load
 
-    async def mock_async_load(store):
+    async def mock_async_load(store: storage.Store):
         """Mock version of load."""
         if store._data is None:
             # No data to load
@@ -271,13 +266,13 @@ def mock_storage(data=None):
         _LOGGER.info("Loading data for %s: %s", store.key, loaded)
         return loaded
 
-    def mock_write_data(store, path, data_to_write):
+    def mock_write_data(store: storage.Store, path: str, data_to_write: dict):
         """Mock version of write data."""
         _LOGGER.info("Writing data to %s: %s", store.key, data_to_write)
         # To ensure that the data can be serialized
         data[store.key] = json_func.loads(json_func.dumps(data_to_write, cls=store._encoder))
 
-    async def mock_remove(store):
+    async def mock_remove(store: storage.Store):
         """Remove data."""
         data.pop(store.key, None)
 
@@ -455,14 +450,14 @@ class ProxyClientSession(ClientSession):
         if not os.path.exists(fp):
             raise Exception(f"Missing fixture for proxy/{url.host}{url.path}")
 
-        async def read(**kwargs):
+        async def read(**kwargs: Any):
             if url.path.endswith(".zip"):
                 with open(fp, mode="rb") as fptr:
                     return fptr.read()
             with open(fp, encoding="utf-8") as fptr:
                 return fptr.read().encode("utf-8")
 
-        async def json(**kwargs):
+        async def json(**kwargs: Any):
             with open(fp, encoding="utf-8") as fptr:
                 return json_func.loads(fptr.read())
 
@@ -536,7 +531,7 @@ async def client_session_proxy(hass: ha.HomeAssistant) -> ClientSession:
 
 
 def create_config_entry(
-    data: dict[str, Any] = None, options: dict[str, Any] = None
+    data: dict[str, Any] | None = None, options: dict[str, Any] | None = None
 ) -> MockConfigEntry:
     try:
         # Core 2024.1 added minor_version
@@ -562,7 +557,9 @@ def create_config_entry(
         )
 
 
-async def setup_integration(hass: ha.HomeAssistant, config_entry: MockConfigEntry) -> None:
+async def setup_integration(
+    hass: ha.HomeAssistant, config_entry: MockConfigEntry
+) -> None:
     mock_session = await client_session_proxy(hass)
     with patch(
         "homeassistant.helpers.aiohttp_client.async_get_clientsession", return_value=mock_session
